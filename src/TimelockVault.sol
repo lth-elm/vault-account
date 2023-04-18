@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "./interfaces/ITimelockVault.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract TimelockVault is Ownable {
+contract TimelockVault is Ownable, ITimelockVault {
     uint256 public s_lastDepositTimestamp = 0;
 
-    error TimeLeft(uint256);
-
     function deposit() external payable {
+        emit Deposit(msg.value);
         s_lastDepositTimestamp = block.timestamp;
     }
 
