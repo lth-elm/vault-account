@@ -21,19 +21,25 @@ contract TimelockVaultTest is Test {
         assertEq(vault.balance(), 100 ether);
     }
 
-    // function testWithdrawal() public {
-    //     vault.deposit{value: 100}();
-    //     // vm add 24 hours
-    //     vault.withdraw();
-    //     assertEq(vault.balance(), 0);
-    // }
+    function testTimeLeft() public {
+        vault.deposit{value: 100}();
+        vm.warp(block.timestamp + 0.7 days);
+        assertEq(vault.timeLeft(), 0.3 days);
+    }
 
-    // function testFailWithdrawal() public {
-    //     vault.deposit{value: 100}();
-    //     // vm add 24 hours
-    //     vault.withdraw();
-    //     assertEq(vault.balance(), 100 ether);
-    // }
+    function testWithdrawal() public {
+        vault.deposit{value: 100}();
+        vm.warp(block.timestamp + 1 days);
+        vault.withdraw();
+        assertEq(vault.balance(), 0);
+    }
+
+    function testFailWithdrawal() public {
+        vault.deposit{value: 100}();
+        vm.warp(block.timestamp + 1 days);
+        vault.withdraw();
+        assertEq(vault.balance(), 100 ether);
+    }
 
     function testWithdrawalRevert() public {
         vault.deposit{value: 100}();
