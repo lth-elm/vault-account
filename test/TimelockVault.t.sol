@@ -4,8 +4,9 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/Console.sol";
 import {TimelockVault} from "../src/TimelockVault.sol";
+import "../src/interfaces/ITimelockVault.sol";
 
-contract TimelockVaultTest is Test {
+contract TimelockVaultTest is Test, ITimelockVault {
     TimelockVault public vault;
 
     // https://ethereum.stackexchange.com/a/136286
@@ -17,6 +18,8 @@ contract TimelockVaultTest is Test {
     }
 
     function testDeposit() public {
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Deposit(100 ether);
         vault.deposit{value: 100 ether}();
         assertEq(vault.balance(), 100 ether);
     }
