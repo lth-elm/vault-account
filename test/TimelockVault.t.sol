@@ -20,62 +20,85 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
     function testDeposit() public {
         vm.expectEmit(true, true, true, true, address(vault));
-        emit Deposit(100 ether);
+        emit Deposit(block.timestamp, 100 ether);
         vault.deposit{value: 100 ether}();
         assertEq(vault.balance(), 100 ether);
     }
 
-    function testTimeLeft() public {
+    function testFailDeposit() public {
         vault.deposit{value: 100}();
-        // vm.warp(block.timestamp + 0.7 days);
+        assertEq(vault.balance(), 100 ether);
+    }
+
+    function testWithdrawalRequestData() public {
+        vault.deposit{value: 100}();
         (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
-            vault.getIsLastWithdrawalRequestTimestampLeft();
+            vault.getWithdrawalRequestData();
         assertEq(isPendingWithdrawalRequest, false);
         assertEq(lastWithdrawalRequestTimestamp, 0);
         assertEq(timeLeft, 0);
     }
 
-    // function testTimeLeft() public {
-    //     vault.deposit{value: 100}();
-    //     vm.warp(block.timestamp + 0.7 days);
-    //     assertEq(vault.timeLeft(), 0.3 days);
-    // }
+    function testWithdrawal() public {
+        vault.deposit{value: 100}();
 
-    // function testWithdrawal() public {
-    //     vault.deposit{value: 100}();
-    //     vm.warp(block.timestamp + 1 days);
-    //     vault.withdraw();
-    //     assertEq(vault.balance(), 0);
-    // }
+        uint256 withdrawalRequestTimestamp = block.timestamp;
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit WithdrawalRequest(block.timestamp);
+        vault.withdrawalRequest();
 
-    // function testFailWithdrawal() public {
-    //     vault.deposit{value: 100}();
-    //     vm.warp(block.timestamp + 1 days);
-    //     vault.withdraw();
-    //     assertEq(vault.balance(), 100 ether);
-    // }
+        (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
+            vault.getWithdrawalRequestData();
+        assertEq(isPendingWithdrawalRequest, true);
+        assertEq(lastWithdrawalRequestTimestamp, block.timestamp);
+        assertEq(timeLeft, 1 days);
 
-    // function testWithdrawalRevert() public {
-    //     vault.deposit{value: 100}();
+        vm.warp(block.timestamp + 0.7 days);
 
-    //     vm.prank(address(1));
-    //     vm.expectRevert("Ownable: caller is not the owner");
-    //     vault.withdraw();
-    // }
+        (,, uint256 newTimeLeft) = vault.getWithdrawalRequestData();
+        assertEq(newTimeLeft, 0.3 days);
 
-    // function testWithdrawalTimeRevert() public {
-    //     vault.deposit{value: 100}();
+        vm.warp(block.timestamp + 0.4 days);
 
-    //     bytes4 selector = bytes4(keccak256("TimeLeft(uint256)"));
-    //     vm.expectRevert(abi.encodeWithSelector(selector, vault.s_lastDepositTimestamp() + 1 days - block.timestamp));
-    //     vault.withdraw();
-    // }
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Withdraw(block.timestamp, vault.balance());
+        vault.withdraw();
+        assertEq(vault.balance(), 0);
 
-    // function testWithdrawalVaultTimeRevert() public {
-    //     vault.deposit{value: 100}();
+        (bool updatedPendingWithdrawalRequest, uint256 getLastWithdrawalRequestTimestamp, uint256 updatedTimeLeft) =
+            vault.getWithdrawalRequestData();
+        assertEq(updatedPendingWithdrawalRequest, false);
+        assertEq(getLastWithdrawalRequestTimestamp, withdrawalRequestTimestamp);
+        assertEq(updatedTimeLeft, 0);
+    }
 
-    //     bytes4 selector = bytes4(keccak256("TimeLeft(uint256)"));
-    //     vm.expectRevert(abi.encodeWithSelector(selector, vault.timeLeft()));
-    //     vault.withdraw();
-    // }
+    function testWithdrawalReverts() public {
+        vault.deposit{value: 100}();
+
+        vm.expectRevert("No withdrawal request made");
+        vault.withdraw();
+
+        uint256 withdrawalRequestTimestamp = block.timestamp;
+        vault.withdrawalRequest();
+
+        vm.warp(block.timestamp + 0.7 days);
+
+        (, uint256 lastWithdrawalRequestTimestamp,) = vault.getWithdrawalRequestData();
+        bytes4 selector = bytes4(keccak256("TimeLeft(uint256)"));
+        vm.expectRevert(abi.encodeWithSelector(selector, lastWithdrawalRequestTimestamp + 1 days - block.timestamp));
+        vault.withdraw();
+        vm.expectRevert(abi.encodeWithSelector(selector, withdrawalRequestTimestamp + 1 days - block.timestamp));
+        vault.withdraw();
+
+        vm.warp(block.timestamp + 0.3 days);
+
+        vm.prank(address(1));
+        vm.expectRevert("Ownable: caller is not the owner");
+        vault.withdraw();
+
+        vault.withdraw();
+
+        vm.expectRevert("No withdrawal request made");
+        vault.withdraw();
+    }
 }
