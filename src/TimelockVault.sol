@@ -27,6 +27,8 @@ contract TimelockVault is Ownable, ITimelockVault {
             revert TimeLeft(lastDepositTimestamp + 1 days - block.timestamp);
         }
 
+        emit Withdraw(address(this).balance);
+
         (bool hs,) = payable(owner()).call{value: address(this).balance}("");
         require(hs, "The Withdrawal could not be achieved");
     }
