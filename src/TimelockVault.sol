@@ -10,14 +10,14 @@ contract TimelockVault is Ownable, ITimelockVault {
 
     function deposit() external payable {
         s_isPendingWithdrawalRequest = false; // reset withdrawal request
-        emit Deposit(msg.value);
+        emit Deposit(block.timestamp, msg.value);
     }
 
     function balance() external view returns (uint256) {
         return address(this).balance;
     }
 
-    function getIsLastWithdrawalRequestTimestampLeft() external view returns (bool, uint256, uint256) {
+    function getWithdrawalRequestData() external view returns (bool, uint256, uint256) {
         uint256 lastWithdrawalRequestTimestamp = s_lastWithdrawalRequestTimestamp;
         return (
             s_isPendingWithdrawalRequest,
@@ -31,7 +31,7 @@ contract TimelockVault is Ownable, ITimelockVault {
     function withdrawalRequest() external onlyOwner {
         s_isPendingWithdrawalRequest = true;
         s_lastWithdrawalRequestTimestamp = block.timestamp;
-        emit WithdrawalRequest();
+        emit WithdrawalRequest(block.timestamp);
     }
 
     function withdraw() external onlyOwner isPendingWithdrawalRequest {
@@ -42,7 +42,7 @@ contract TimelockVault is Ownable, ITimelockVault {
 
         s_isPendingWithdrawalRequest = false;
 
-        emit Withdraw(address(this).balance);
+        emit Withdraw(block.timestamp, address(this).balance);
 
         (bool hs,) = payable(owner()).call{value: address(this).balance}("");
         require(hs, "The Withdrawal could not be achieved");
