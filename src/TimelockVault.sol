@@ -5,31 +5,51 @@ import "./interfaces/ITimelockVault.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TimelockVault is Ownable, ITimelockVault {
-    uint256 public s_lastDepositTimestamp = 0;
+    uint256 private s_lastWithdrawalRequestTimestamp = 0;
+    bool private s_isPendingWithdrawalRequest = false;
 
     function deposit() external payable {
+        s_isPendingWithdrawalRequest = false; // reset withdrawal request
         emit Deposit(msg.value);
-        s_lastDepositTimestamp = block.timestamp;
     }
 
     function balance() external view returns (uint256) {
         return address(this).balance;
     }
 
-    function timeLeft() external view returns (uint256) {
-        uint256 lastDepositTimestamp = s_lastDepositTimestamp;
-        return lastDepositTimestamp + 1 days - block.timestamp;
+    function getIsLastWithdrawalRequestTimestampLeft() external view returns (bool, uint256, uint256) {
+        uint256 lastWithdrawalRequestTimestamp = s_lastWithdrawalRequestTimestamp;
+        return (
+            s_isPendingWithdrawalRequest,
+            lastWithdrawalRequestTimestamp,
+            lastWithdrawalRequestTimestamp + 1 days > block.timestamp
+                ? lastWithdrawalRequestTimestamp + 1 days - block.timestamp
+                : 0
+        );
     }
 
-    function withdraw() external onlyOwner {
-        uint256 lastDepositTimestamp = s_lastDepositTimestamp;
-        if (block.timestamp < lastDepositTimestamp + 1 days) {
-            revert TimeLeft(lastDepositTimestamp + 1 days - block.timestamp);
+    function withdrawalRequest() external onlyOwner {
+        s_isPendingWithdrawalRequest = true;
+        s_lastWithdrawalRequestTimestamp = block.timestamp;
+        emit WithdrawalRequest();
+    }
+
+    function withdraw() external onlyOwner isPendingWithdrawalRequest {
+        uint256 lastWithdrawalRequestTimestamp = s_lastWithdrawalRequestTimestamp;
+        if (block.timestamp < lastWithdrawalRequestTimestamp + 1 days) {
+            revert TimeLeft(lastWithdrawalRequestTimestamp + 1 days - block.timestamp);
         }
+
+        s_isPendingWithdrawalRequest = false;
 
         emit Withdraw(address(this).balance);
 
         (bool hs,) = payable(owner()).call{value: address(this).balance}("");
         require(hs, "The Withdrawal could not be achieved");
+    }
+
+    modifier isPendingWithdrawalRequest() {
+        require(s_isPendingWithdrawalRequest, "No withdrawal request made");
+        _;
     }
 }
