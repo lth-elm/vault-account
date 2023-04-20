@@ -6,6 +6,8 @@ interface ITimelockVault {
 
     event WithdrawalRequest(uint256 indexed timestamp);
 
+    event RevokeWithdrawalRequest(uint256 indexed timestamp);
+
     event Withdraw(uint256 timestamp, uint256 indexed amount);
 
     error TimeLeft(uint256 timeLeft);

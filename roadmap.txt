@@ -1,4 +1,3 @@
-- Revoke withdrawal request
 - Roles
 - 2FA definite withdrawal request revokation (pausable like)
 - Send to new secure address

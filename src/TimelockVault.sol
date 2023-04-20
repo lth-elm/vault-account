@@ -34,6 +34,11 @@ contract TimelockVault is Ownable, ITimelockVault {
         emit WithdrawalRequest(block.timestamp);
     }
 
+    function revokeWithdrawalRequest() external onlyOwner {
+        s_isPendingWithdrawalRequest = false;
+        emit RevokeWithdrawalRequest(block.timestamp);
+    }
+
     function withdraw() external onlyOwner isPendingWithdrawalRequest {
         uint256 lastWithdrawalRequestTimestamp = s_lastWithdrawalRequestTimestamp;
         if (block.timestamp < lastWithdrawalRequestTimestamp + 1 days) {
@@ -49,7 +54,7 @@ contract TimelockVault is Ownable, ITimelockVault {
     }
 
     modifier isPendingWithdrawalRequest() {
-        require(s_isPendingWithdrawalRequest, "No withdrawal request made");
+        require(s_isPendingWithdrawalRequest, "No pending withdrawal request");
         _;
     }
 }
