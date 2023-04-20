@@ -34,9 +34,9 @@ contract TimelockVaultTest is Test, ITimelockVault {
         vault.deposit{value: 100}();
         (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
             vault.getWithdrawalRequestData();
-        assertEq(isPendingWithdrawalRequest, false);
-        assertEq(lastWithdrawalRequestTimestamp, 0);
-        assertEq(timeLeft, 0);
+        assertEq(isPendingWithdrawalRequest, false, "test non pending withdrawal request");
+        assertEq(lastWithdrawalRequestTimestamp, 0, "test last withdrawal request timestamp 0");
+        assertEq(timeLeft, 0, "test 0 time left");
     }
 
     function testWithdrawal() public {
@@ -49,27 +49,29 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
         (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
             vault.getWithdrawalRequestData();
-        assertEq(isPendingWithdrawalRequest, true);
-        assertEq(lastWithdrawalRequestTimestamp, block.timestamp);
-        assertEq(timeLeft, 1 days);
+        assertEq(isPendingWithdrawalRequest, true, "test pending withdrawal request");
+        assertEq(lastWithdrawalRequestTimestamp, block.timestamp, "test last withdrawal request timestamp");
+        assertEq(timeLeft, 1 days, "test 1 day left");
 
         vm.warp(block.timestamp + 0.7 days);
 
         (,, uint256 newTimeLeft) = vault.getWithdrawalRequestData();
-        assertEq(newTimeLeft, 0.3 days);
+        assertEq(newTimeLeft, 0.3 days, "test 0.3 days left");
 
         vm.warp(block.timestamp + 0.4 days);
 
         vm.expectEmit(true, true, true, true, address(vault));
         emit Withdraw(block.timestamp, vault.balance());
         vault.withdraw();
-        assertEq(vault.balance(), 0);
+        assertEq(vault.balance(), 0, "test balance 0");
 
         (bool updatedPendingWithdrawalRequest, uint256 getLastWithdrawalRequestTimestamp, uint256 updatedTimeLeft) =
             vault.getWithdrawalRequestData();
-        assertEq(updatedPendingWithdrawalRequest, false);
-        assertEq(getLastWithdrawalRequestTimestamp, withdrawalRequestTimestamp);
-        assertEq(updatedTimeLeft, 0);
+        assertEq(updatedPendingWithdrawalRequest, false, "test non pending withdrawal request");
+        assertEq(
+            getLastWithdrawalRequestTimestamp, withdrawalRequestTimestamp, "test last withdrawal request timestamp"
+        );
+        assertEq(updatedTimeLeft, 0, "test 0 time left");
     }
 
     function testWithdrawalReverts() public {
@@ -83,11 +85,19 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
         vm.warp(block.timestamp + 0.7 days);
 
+        // bytes4 selector = bytes4(keccak256("TimeLeft(uint256)"));
         (, uint256 lastWithdrawalRequestTimestamp,) = vault.getWithdrawalRequestData();
-        bytes4 selector = bytes4(keccak256("TimeLeft(uint256)"));
-        vm.expectRevert(abi.encodeWithSelector(selector, lastWithdrawalRequestTimestamp + 1 days - block.timestamp));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ITimelockVault.TimeLeft.selector, lastWithdrawalRequestTimestamp + 1 days - block.timestamp
+            )
+        );
         vault.withdraw();
-        vm.expectRevert(abi.encodeWithSelector(selector, withdrawalRequestTimestamp + 1 days - block.timestamp));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ITimelockVault.TimeLeft.selector, withdrawalRequestTimestamp + 1 days - block.timestamp
+            )
+        );
         vault.withdraw();
 
         vm.warp(block.timestamp + 0.3 days);
