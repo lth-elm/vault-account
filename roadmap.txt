@@ -1,0 +1,9 @@
+- Revoke withdrawal request
+- Roles
+- 2FA definite withdrawal request revokation (pausable like)
+- Send to new secure address
+- Withdraw [multiple] specific amount
+- Smart contract 2FA speed up withdrawal option
+- Off chain read events and 2FA alert
+- Account Wallet
+- Factory option 
