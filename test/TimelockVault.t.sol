@@ -19,8 +19,8 @@ contract TimelockVaultTest is Test, ITimelockVault {
     }
 
     function testDeposit() public {
-        vm.expectEmit(true, true, true, true, address(vault));
-        emit Deposit(block.timestamp, 100 ether);
+        vm.expectEmit(true, false, false, false, address(vault));
+        emit Deposit(100 ether);
         vault.deposit{value: 100 ether}();
         assertEq(vault.balance(), 100 ether);
     }
@@ -43,8 +43,8 @@ contract TimelockVaultTest is Test, ITimelockVault {
         vault.deposit{value: 100}();
 
         uint256 withdrawalRequestTimestamp = block.timestamp;
-        vm.expectEmit(true, true, true, true, address(vault));
-        emit WithdrawalRequest(block.timestamp);
+        vm.expectEmit(false, false, false, false, address(vault));
+        emit WithdrawalRequest();
         vault.withdrawalRequest();
 
         (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
@@ -60,8 +60,8 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
         vm.warp(block.timestamp + 0.4 days);
 
-        vm.expectEmit(true, true, true, true, address(vault));
-        emit Withdraw(block.timestamp, vault.balance());
+        vm.expectEmit(true, false, false, false, address(vault));
+        emit Withdraw(vault.balance());
         vault.withdraw();
         assertEq(vault.balance(), 0, "test balance 0");
 
@@ -120,8 +120,8 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
         vm.warp(block.timestamp + 0.7 days);
 
-        vm.expectEmit(true, true, true, true, address(vault));
-        emit RevokeWithdrawalRequest(block.timestamp);
+        vm.expectEmit(false, false, false, false, address(vault));
+        emit RevokeWithdrawalRequest();
         vault.revokeWithdrawalRequest();
 
         (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =

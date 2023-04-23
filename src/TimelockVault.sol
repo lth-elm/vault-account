@@ -10,7 +10,7 @@ contract TimelockVault is Ownable, ITimelockVault {
 
     function deposit() external payable {
         _s_isPendingWithdrawalRequest = false; // reset withdrawal request
-        emit Deposit(block.timestamp, msg.value);
+        emit Deposit(msg.value);
     }
 
     function balance() external view returns (uint256) {
@@ -31,12 +31,12 @@ contract TimelockVault is Ownable, ITimelockVault {
     function withdrawalRequest() external onlyOwner {
         _s_isPendingWithdrawalRequest = true;
         _s_lastWithdrawalRequestTimestamp = block.timestamp;
-        emit WithdrawalRequest(block.timestamp);
+        emit WithdrawalRequest();
     }
 
     function revokeWithdrawalRequest() external onlyOwner {
         _s_isPendingWithdrawalRequest = false;
-        emit RevokeWithdrawalRequest(block.timestamp);
+        emit RevokeWithdrawalRequest();
     }
 
     function withdraw() external onlyOwner isPendingWithdrawalRequest {
@@ -47,7 +47,7 @@ contract TimelockVault is Ownable, ITimelockVault {
 
         _s_isPendingWithdrawalRequest = false;
 
-        emit Withdraw(block.timestamp, address(this).balance);
+        emit Withdraw(address(this).balance);
 
         (bool hs,) = payable(owner()).call{value: address(this).balance}("");
         if (!hs) revert CallFail();
