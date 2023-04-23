@@ -12,5 +12,9 @@ interface ITimelockVault {
 
     error TimeLeft(uint256 timeLeft);
 
+    error NoPendingWithdrawal();
+
+    error CallFail();
+
     // add external functions here
 }

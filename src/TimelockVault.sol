@@ -50,11 +50,11 @@ contract TimelockVault is Ownable, ITimelockVault {
         emit Withdraw(block.timestamp, address(this).balance);
 
         (bool hs,) = payable(owner()).call{value: address(this).balance}("");
-        require(hs, "The Withdrawal could not be achieved");
+        if (!hs) revert CallFail();
     }
 
     modifier isPendingWithdrawalRequest() {
-        require(_s_isPendingWithdrawalRequest, "No pending withdrawal request");
+        if (!_s_isPendingWithdrawalRequest) revert NoPendingWithdrawal();
         _;
     }
 }

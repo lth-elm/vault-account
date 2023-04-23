@@ -15,7 +15,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
     function setUp() public {
         vault = new TimelockVault();
-        vm.warp(1681904648); // set timestamp as if time passed
+        vm.warp(1681904648); // set timestamp as if current
     }
 
     function testDeposit() public {
@@ -77,7 +77,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
     function testWithdrawalReverts() public {
         vault.deposit{value: 100}();
 
-        vm.expectRevert("No pending withdrawal request");
+        vm.expectRevert(abi.encodeWithSelector(ITimelockVault.NoPendingWithdrawal.selector));
         vault.withdraw();
 
         uint256 withdrawalRequestTimestamp = block.timestamp;
@@ -108,7 +108,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
         vault.withdraw();
 
-        vm.expectRevert("No pending withdrawal request");
+        vm.expectRevert(abi.encodeWithSelector(ITimelockVault.NoPendingWithdrawal.selector));
         vault.withdraw();
     }
 
@@ -135,7 +135,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
         (,, uint256 newTimeLeft) = vault.getWithdrawalRequestData();
         assertEq(newTimeLeft, 0, "test timelock over");
 
-        vm.expectRevert("No pending withdrawal request");
+        vm.expectRevert(abi.encodeWithSelector(ITimelockVault.NoPendingWithdrawal.selector));
         vault.withdraw();
     }
 }
