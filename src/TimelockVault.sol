@@ -5,8 +5,8 @@ import "./interfaces/ITimelockVault.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TimelockVault is Ownable, ITimelockVault {
-    uint256 private _s_lastWithdrawalRequestTimestamp = 0;
-    bool private _s_isPendingWithdrawalRequest = false;
+    uint256 private _s_lastWithdrawalRequestTimestamp;
+    bool private _s_isPendingWithdrawalRequest;
 
     function deposit() external payable {
         _s_isPendingWithdrawalRequest = false; // reset withdrawal request
