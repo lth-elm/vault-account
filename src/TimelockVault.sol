@@ -22,9 +22,7 @@ contract TimelockVault is Ownable, ITimelockVault {
         return (
             _s_isPendingWithdrawalRequest,
             lastWithdrawalRequestTimestamp,
-            lastWithdrawalRequestTimestamp + 1 days > block.timestamp
-                ? lastWithdrawalRequestTimestamp + 1 days - block.timestamp
-                : 0
+            lastWithdrawalRequestTimestamp + 1 days > block.timestamp ? _timeLeft(lastWithdrawalRequestTimestamp) : 0
         );
     }
 
@@ -42,7 +40,7 @@ contract TimelockVault is Ownable, ITimelockVault {
     function withdraw() external onlyOwner isPendingWithdrawalRequest {
         uint256 lastWithdrawalRequestTimestamp = _s_lastWithdrawalRequestTimestamp;
         if (block.timestamp < lastWithdrawalRequestTimestamp + 1 days) {
-            revert TimeLeft(lastWithdrawalRequestTimestamp + 1 days - block.timestamp);
+            revert TimeLeft(_timeLeft(lastWithdrawalRequestTimestamp));
         }
 
         _s_isPendingWithdrawalRequest = false;
@@ -51,6 +49,10 @@ contract TimelockVault is Ownable, ITimelockVault {
 
         (bool hs,) = payable(owner()).call{value: address(this).balance}("");
         if (!hs) revert CallFail();
+    }
+
+    function _timeLeft(uint256 _lastWithdrawalRequestTimestamp) internal view returns (uint256) {
+        return _lastWithdrawalRequestTimestamp + 1 days - block.timestamp;
     }
 
     modifier isPendingWithdrawalRequest() {
