@@ -7,6 +7,9 @@ import {TimelockVault} from "../src/TimelockVault.sol";
 import "../src/interfaces/ITimelockVault.sol";
 
 contract TimelockVaultTest is Test, ITimelockVault {
+    uint256 private constant _FALSE = 1;
+    uint256 private constant _TRUE = 2;
+
     TimelockVault public vault;
 
     // https://ethereum.stackexchange.com/a/136286
@@ -32,9 +35,9 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
     function testWithdrawalRequestData() public {
         vault.deposit{value: 100}();
-        (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
+        (uint256 boolPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
             vault.getWithdrawalRequestData();
-        assertEq(isPendingWithdrawalRequest, false, "test non pending withdrawal request");
+        assertEq(boolPendingWithdrawalRequest, _FALSE, "test non pending withdrawal request");
         assertEq(lastWithdrawalRequestTimestamp, 0, "test last withdrawal request timestamp 0");
         assertEq(timeLeft, 0, "test 0 time left");
     }
@@ -47,9 +50,9 @@ contract TimelockVaultTest is Test, ITimelockVault {
         emit WithdrawalRequest();
         vault.withdrawalRequest();
 
-        (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
+        (uint256 boolPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
             vault.getWithdrawalRequestData();
-        assertEq(isPendingWithdrawalRequest, true, "test pending withdrawal request");
+        assertEq(boolPendingWithdrawalRequest, _TRUE, "test pending withdrawal request");
         assertEq(lastWithdrawalRequestTimestamp, block.timestamp, "test last withdrawal request timestamp");
         assertEq(timeLeft, 1 days, "test 1 day left");
 
@@ -65,9 +68,9 @@ contract TimelockVaultTest is Test, ITimelockVault {
         vault.withdraw();
         assertEq(vault.balance(), 0, "test balance 0");
 
-        (bool updatedPendingWithdrawalRequest, uint256 getLastWithdrawalRequestTimestamp, uint256 updatedTimeLeft) =
+        (uint256 updatedPendingWithdrawalRequest, uint256 getLastWithdrawalRequestTimestamp, uint256 updatedTimeLeft) =
             vault.getWithdrawalRequestData();
-        assertEq(updatedPendingWithdrawalRequest, false, "test non pending withdrawal request");
+        assertEq(updatedPendingWithdrawalRequest, _FALSE, "test non pending withdrawal request");
         assertEq(
             getLastWithdrawalRequestTimestamp, withdrawalRequestTimestamp, "test last withdrawal request timestamp"
         );
@@ -124,9 +127,9 @@ contract TimelockVaultTest is Test, ITimelockVault {
         emit RevokeWithdrawalRequest();
         vault.revokeWithdrawalRequest();
 
-        (bool isPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
+        (uint256 boolPendingWithdrawalRequest, uint256 lastWithdrawalRequestTimestamp, uint256 timeLeft) =
             vault.getWithdrawalRequestData();
-        assertEq(isPendingWithdrawalRequest, false, "test pending withdrawal request");
+        assertEq(boolPendingWithdrawalRequest, _FALSE, "test pending withdrawal request");
         assertEq(lastWithdrawalRequestTimestamp, withdrawalRequestTimestamp, "test last withdrawal request timestamp");
         assertEq(timeLeft, 0.3 days, "test 0.3 day left");
 

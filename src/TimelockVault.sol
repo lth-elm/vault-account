@@ -5,11 +5,18 @@ import "./interfaces/ITimelockVault.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TimelockVault is Ownable, ITimelockVault {
+    uint256 private constant _FALSE = 1;
+    uint256 private constant _TRUE = 2;
+
     uint256 private _s_lastWithdrawalRequestTimestamp;
-    bool private _s_isPendingWithdrawalRequest;
+    uint256 private _s_boolPendingWithdrawalRequest;
+
+    constructor() {
+        _s_boolPendingWithdrawalRequest = _FALSE;
+    }
 
     function deposit() external payable {
-        _s_isPendingWithdrawalRequest = false; // reset withdrawal request
+        _s_boolPendingWithdrawalRequest = _FALSE; // reset withdrawal request
         emit Deposit(msg.value);
     }
 
@@ -17,23 +24,23 @@ contract TimelockVault is Ownable, ITimelockVault {
         return address(this).balance;
     }
 
-    function getWithdrawalRequestData() external view returns (bool, uint256, uint256) {
+    function getWithdrawalRequestData() external view returns (uint256, uint256, uint256) {
         uint256 lastWithdrawalRequestTimestamp = _s_lastWithdrawalRequestTimestamp;
         return (
-            _s_isPendingWithdrawalRequest,
+            _s_boolPendingWithdrawalRequest,
             lastWithdrawalRequestTimestamp,
             lastWithdrawalRequestTimestamp + 1 days > block.timestamp ? _timeLeft(lastWithdrawalRequestTimestamp) : 0
         );
     }
 
     function withdrawalRequest() external onlyOwner {
-        _s_isPendingWithdrawalRequest = true;
+        _s_boolPendingWithdrawalRequest = _TRUE;
         _s_lastWithdrawalRequestTimestamp = block.timestamp;
         emit WithdrawalRequest();
     }
 
     function revokeWithdrawalRequest() external onlyOwner {
-        _s_isPendingWithdrawalRequest = false;
+        _s_boolPendingWithdrawalRequest = _FALSE;
         emit RevokeWithdrawalRequest();
     }
 
@@ -43,7 +50,7 @@ contract TimelockVault is Ownable, ITimelockVault {
             revert TimeLeft(_timeLeft(lastWithdrawalRequestTimestamp));
         }
 
-        _s_isPendingWithdrawalRequest = false;
+        _s_boolPendingWithdrawalRequest = _FALSE;
 
         emit Withdraw(address(this).balance);
 
@@ -56,7 +63,7 @@ contract TimelockVault is Ownable, ITimelockVault {
     }
 
     modifier isPendingWithdrawalRequest() {
-        if (!_s_isPendingWithdrawalRequest) revert NoPendingWithdrawal();
+        if (_s_boolPendingWithdrawalRequest == _FALSE) revert NoPendingWithdrawal();
         _;
     }
 }
