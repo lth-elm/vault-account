@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/Console.sol";
 import {TimelockVault} from "../src/TimelockVault.sol";
@@ -12,25 +14,63 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
     TimelockVault public vault;
 
+    // skip the _ convention
+    address private guardian;
+    address private user;
+    address private trudy;
+
     // https://ethereum.stackexchange.com/a/136286
     receive() external payable {}
     fallback() external payable {}
 
     function setUp() public {
-        vault = new TimelockVault();
+        guardian = makeAddr("guardian");
+        user = makeAddr("user");
+        trudy = makeAddr("trudy");
+
+        vm.deal(guardian, 1000 ether);
+        vm.deal(user, 1000 ether);
+        vm.deal(trudy, 1000 ether);
+
+        vault = new TimelockVault(user, guardian);
+
         vm.warp(1681904648); // set timestamp as if current
+
+        // CALL ALL FUNCTION AS IF IT WAS THE USER
+        vm.startPrank(user);
     }
 
     function testDeposit() public {
         vm.expectEmit(true, false, false, false, address(vault));
         emit Deposit(100 ether);
         vault.deposit{value: 100 ether}();
-        assertEq(vault.balance(), 100 ether);
+        assertEq(vault.balance(), 100 ether, "test deposit vault balance");
+
+        vault.deposit{value: 30 ether}();
+        assertEq(vault.balance(), 130 ether, "test new vault balance");
+        assertEq(user.balance, 870 ether, "test user balance");
+
+        // STOP PRANK
+        vm.stopPrank();
+
+        bytes memory expectedRevertMessage = abi.encodePacked(
+            "AccessControl: account ",
+            Strings.toHexString(trudy),
+            " is missing role ",
+            Strings.toHexString(uint256(vault.USER_ROLE()), 32)
+        );
+
+        vm.prank(trudy);
+        vm.expectRevert(expectedRevertMessage);
+        vault.deposit{value: 1}();
+
+        vm.startPrank(user);
+        // RESTART PRANK
     }
 
     function testFailDeposit() public {
         vault.deposit{value: 100}();
-        assertEq(vault.balance(), 100 ether);
+        assertEq(vault.balance(), 100 ether, "test false amount deposit");
     }
 
     function testWithdrawalRequestData() public {
@@ -66,7 +106,8 @@ contract TimelockVaultTest is Test, ITimelockVault {
         vm.expectEmit(true, false, false, false, address(vault));
         emit Withdraw(vault.balance());
         vault.withdraw();
-        assertEq(vault.balance(), 0, "test balance 0");
+        assertEq(vault.balance(), 0, "test vault balance 0");
+        assertEq(user.balance, 1000 ether, "test user balance full");
 
         (uint256 updatedPendingWithdrawalRequest, uint256 getLastWithdrawalRequestTimestamp, uint256 updatedTimeLeft) =
             vault.getWithdrawalRequestData();
@@ -105,9 +146,22 @@ contract TimelockVaultTest is Test, ITimelockVault {
 
         vm.warp(block.timestamp + 0.3 days);
 
-        vm.prank(address(1));
-        vm.expectRevert("Ownable: caller is not the owner");
+        // STOP PRANK
+        vm.stopPrank();
+
+        bytes memory expectedRevertMessage = abi.encodePacked(
+            "AccessControl: account ",
+            Strings.toHexString(trudy),
+            " is missing role ",
+            Strings.toHexString(uint256(vault.USER_ROLE()), 32)
+        );
+
+        vm.prank(trudy);
+        vm.expectRevert(expectedRevertMessage);
         vault.withdraw();
+
+        vm.startPrank(user);
+        // RESTART PRANK
 
         vault.withdraw();
 

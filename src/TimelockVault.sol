@@ -2,20 +2,25 @@
 pragma solidity ^0.8.13;
 
 import "./interfaces/ITimelockVault.sol";
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-contract TimelockVault is Ownable, ITimelockVault {
+contract TimelockVault is AccessControl, ITimelockVault {
     uint256 private constant _FALSE = 1;
     uint256 private constant _TRUE = 2;
+
+    bytes32 public immutable USER_ROLE = keccak256("USER");
+    bytes32 public immutable GUARDIAN_ROLE = keccak256("GUARDIAN");
 
     uint256 private _s_lastWithdrawalRequestTimestamp;
     uint256 private _s_boolPendingWithdrawalRequest;
 
-    constructor() {
+    constructor(address user, address guardian) {
         _s_boolPendingWithdrawalRequest = _FALSE;
+        _grantRole(USER_ROLE, user);
+        _grantRole(GUARDIAN_ROLE, guardian);
     }
 
-    function deposit() external payable {
+    function deposit() external payable onlyRole(USER_ROLE) {
         _s_boolPendingWithdrawalRequest = _FALSE; // reset withdrawal request
         emit Deposit(msg.value);
     }
@@ -33,18 +38,18 @@ contract TimelockVault is Ownable, ITimelockVault {
         );
     }
 
-    function withdrawalRequest() external onlyOwner {
+    function withdrawalRequest() external onlyRole(USER_ROLE) {
         _s_boolPendingWithdrawalRequest = _TRUE;
         _s_lastWithdrawalRequestTimestamp = block.timestamp;
         emit WithdrawalRequest();
     }
 
-    function revokeWithdrawalRequest() external onlyOwner {
+    function revokeWithdrawalRequest() external onlyRole(USER_ROLE) {
         _s_boolPendingWithdrawalRequest = _FALSE;
         emit RevokeWithdrawalRequest();
     }
 
-    function withdraw() external onlyOwner isPendingWithdrawalRequest {
+    function withdraw() external onlyRole(USER_ROLE) isPendingWithdrawalRequest {
         uint256 lastWithdrawalRequestTimestamp = _s_lastWithdrawalRequestTimestamp;
         if (block.timestamp < lastWithdrawalRequestTimestamp + 1 days) {
             revert TimeLeft(_timeLeft(lastWithdrawalRequestTimestamp));
@@ -54,7 +59,7 @@ contract TimelockVault is Ownable, ITimelockVault {
 
         emit Withdraw(address(this).balance);
 
-        (bool hs,) = payable(owner()).call{value: address(this).balance}("");
+        (bool hs,) = payable(msg.sender).call{value: address(this).balance}("");
         if (!hs) revert CallFail();
     }
 
