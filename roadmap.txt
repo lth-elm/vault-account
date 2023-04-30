@@ -4,7 +4,8 @@
 - Withdraw [multiple] specific amount
 - Updatable timelock option
 - Smart contract 2FA speed up withdrawal option
+- Multisig for resolution
 - Gasless option
 - Off chain read events and 2FA alert
 - Account Wallet
-- Factory option 
+- Factory option
