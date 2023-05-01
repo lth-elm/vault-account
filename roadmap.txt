@@ -1,4 +1,5 @@
-- 2FA definite withdrawal request revokation (pausable like)
+- Invariant test (unbreakable pause)
+- 2FA Unpause
 - Send to new secure address
 - Withdraw [multiple] specific amount
 - Updatable timelock option

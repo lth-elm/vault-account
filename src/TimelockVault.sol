@@ -2,9 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "./interfaces/ITimelockVault.sol";
+import "openzeppelin-contracts/contracts/security/Pausable.sol";
 import "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-contract TimelockVault is AccessControl, ITimelockVault {
+contract TimelockVault is AccessControl, Pausable, ITimelockVault {
     uint256 private constant _FALSE = 1;
     uint256 private constant _TRUE = 2;
 
@@ -20,7 +21,7 @@ contract TimelockVault is AccessControl, ITimelockVault {
         _grantRole(GUARDIAN_ROLE, guardian);
     }
 
-    function deposit() external payable onlyRole(USER_ROLE) {
+    function deposit() external payable whenNotPaused onlyRole(USER_ROLE) {
         _s_boolPendingWithdrawalRequest = _FALSE; // reset withdrawal request
         emit Deposit(msg.value);
     }
@@ -38,18 +39,18 @@ contract TimelockVault is AccessControl, ITimelockVault {
         );
     }
 
-    function withdrawalRequest() external onlyRole(USER_ROLE) {
+    function withdrawalRequest() external whenNotPaused onlyRole(USER_ROLE) {
         _s_boolPendingWithdrawalRequest = _TRUE;
         _s_lastWithdrawalRequestTimestamp = block.timestamp;
         emit WithdrawalRequest();
     }
 
-    function revokeWithdrawalRequest() external onlyRole(USER_ROLE) {
+    function revokeWithdrawalRequest() external whenNotPaused onlyRole(USER_ROLE) {
         _s_boolPendingWithdrawalRequest = _FALSE;
         emit RevokeWithdrawalRequest();
     }
 
-    function withdraw() external onlyRole(USER_ROLE) isPendingWithdrawalRequest {
+    function withdraw() external whenNotPaused isPendingWithdrawalRequest onlyRole(USER_ROLE) {
         uint256 lastWithdrawalRequestTimestamp = _s_lastWithdrawalRequestTimestamp;
         if (block.timestamp < lastWithdrawalRequestTimestamp + 1 days) {
             revert TimeLeft(_timeLeft(lastWithdrawalRequestTimestamp));
@@ -61,6 +62,13 @@ contract TimelockVault is AccessControl, ITimelockVault {
 
         (bool hs,) = payable(msg.sender).call{value: address(this).balance}("");
         if (!hs) revert CallFail();
+    }
+
+    function safeLock() external onlyRole(USER_ROLE) {
+        _s_boolPendingWithdrawalRequest = _FALSE;
+        emit RevokeWithdrawalRequest();
+
+        _pause();
     }
 
     function _timeLeft(uint256 _lastWithdrawalRequestTimestamp) internal view returns (uint256) {
