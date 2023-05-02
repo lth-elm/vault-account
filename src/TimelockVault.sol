@@ -79,6 +79,7 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
         } else {
             s_isUserUnlockRequest = _FALSE;
         }
+        emit UnlockRequestUpdate(unlock_);
     }
 
     function unlock() external whenPaused onlyRole(GUARDIAN_ROLE) {
