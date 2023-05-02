@@ -1,7 +1,7 @@
 - Invariant test (unbreakable pause)
 - 2FA Unpause
 - Send to new secure address
-- Update roles (guardian only by guardian, user only by user with larger timelock)
+- Update guardian role (guardian only by guardian)
 - Withdraw [multiple] specific amount
 - Updatable timelock option
 - Smart contract 2FA speed up withdrawal option
