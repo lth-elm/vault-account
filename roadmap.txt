@@ -1,11 +1,13 @@
 - Invariant test (unbreakable pause)
 - 2FA Unpause
 - Send to new secure address
+- Update roles (guardian only by guardian, user only by user with larger timelock)
 - Withdraw [multiple] specific amount
 - Updatable timelock option
 - Smart contract 2FA speed up withdrawal option
 - Multisig for resolution
 - Gasless option
+- Sub-Accounts
 - Off chain read events and 2FA alert
 - Account Wallet
 - Factory option
