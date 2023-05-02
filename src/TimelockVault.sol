@@ -13,16 +13,18 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
     bytes32 public immutable GUARDIAN_ROLE = keccak256("GUARDIAN");
 
     uint256 private _s_lastWithdrawalRequestTimestamp;
-    uint256 private _s_boolPendingWithdrawalRequest;
+    uint256 private _s_isPendingWithdrawalRequest;
 
-    constructor(address user, address guardian) {
-        _s_boolPendingWithdrawalRequest = _FALSE;
-        _grantRole(USER_ROLE, user);
-        _grantRole(GUARDIAN_ROLE, guardian);
+    uint256 public s_isUserUnlockRequest;
+
+    constructor(address user_, address guardian_) {
+        _s_isPendingWithdrawalRequest = _FALSE;
+        _grantRole(USER_ROLE, user_);
+        _grantRole(GUARDIAN_ROLE, guardian_);
     }
 
     function deposit() external payable whenNotPaused onlyRole(USER_ROLE) {
-        _s_boolPendingWithdrawalRequest = _FALSE; // reset withdrawal request
+        _s_isPendingWithdrawalRequest = _FALSE; // reset withdrawal request
         emit Deposit(msg.value);
     }
 
@@ -33,20 +35,20 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
     function getWithdrawalRequestData() external view returns (uint256, uint256, uint256) {
         uint256 lastWithdrawalRequestTimestamp = _s_lastWithdrawalRequestTimestamp;
         return (
-            _s_boolPendingWithdrawalRequest,
+            _s_isPendingWithdrawalRequest,
             lastWithdrawalRequestTimestamp,
             lastWithdrawalRequestTimestamp + 1 days > block.timestamp ? _timeLeft(lastWithdrawalRequestTimestamp) : 0
         );
     }
 
     function withdrawalRequest() external whenNotPaused onlyRole(USER_ROLE) {
-        _s_boolPendingWithdrawalRequest = _TRUE;
+        _s_isPendingWithdrawalRequest = _TRUE;
         _s_lastWithdrawalRequestTimestamp = block.timestamp;
         emit WithdrawalRequest();
     }
 
     function revokeWithdrawalRequest() external whenNotPaused onlyRole(USER_ROLE) {
-        _s_boolPendingWithdrawalRequest = _FALSE;
+        _s_isPendingWithdrawalRequest = _FALSE;
         emit RevokeWithdrawalRequest();
     }
 
@@ -56,7 +58,7 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
             revert TimeLeft(_timeLeft(lastWithdrawalRequestTimestamp));
         }
 
-        _s_boolPendingWithdrawalRequest = _FALSE;
+        _s_isPendingWithdrawalRequest = _FALSE;
 
         emit Withdraw(address(this).balance);
 
@@ -64,19 +66,36 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
         if (!hs) revert CallFail();
     }
 
-    function safeLock() external onlyRole(USER_ROLE) {
-        _s_boolPendingWithdrawalRequest = _FALSE;
+    function safeLock() external whenNotPaused onlyRole(USER_ROLE) {
+        _s_isPendingWithdrawalRequest = _FALSE;
         emit RevokeWithdrawalRequest();
 
         _pause();
     }
 
-    function _timeLeft(uint256 _lastWithdrawalRequestTimestamp) internal view returns (uint256) {
-        return _lastWithdrawalRequestTimestamp + 1 days - block.timestamp;
+    function unlockRequest(bool unlock_) external whenPaused onlyRole(USER_ROLE) {
+        if (unlock_) {
+            s_isUserUnlockRequest = _TRUE;
+        } else {
+            s_isUserUnlockRequest = _FALSE;
+        }
+    }
+
+    function unlock() external whenPaused onlyRole(GUARDIAN_ROLE) {
+        uint256 isUserUnlockRequest = s_isUserUnlockRequest;
+
+        if (isUserUnlockRequest == _FALSE) revert NoUserUnlockRequest();
+
+        isUserUnlockRequest = _FALSE;
+        _unpause();
+    }
+
+    function _timeLeft(uint256 lastWithdrawalRequestTimestamp_) internal view returns (uint256) {
+        return lastWithdrawalRequestTimestamp_ + 1 days - block.timestamp;
     }
 
     modifier isPendingWithdrawalRequest() {
-        if (_s_boolPendingWithdrawalRequest == _FALSE) revert NoPendingWithdrawal();
+        if (_s_isPendingWithdrawalRequest == _FALSE) revert NoPendingWithdrawal();
         _;
     }
 }
