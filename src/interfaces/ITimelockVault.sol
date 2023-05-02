@@ -16,5 +16,9 @@ interface ITimelockVault {
 
     error CallFail();
 
+    error NotAuthorized();
+
+    error NoUserUnlockRequest();
+
     // add external functions here
 }
