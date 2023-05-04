@@ -15,7 +15,7 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
     uint256 private _s_lastWithdrawalRequestTimestamp;
     uint256 private _s_isPendingWithdrawalRequest;
 
-    uint256 public s_isUserUnlockRequest;
+    uint256 private s_isUserUnlockRequest = _FALSE;
 
     constructor(address user_, address guardian_) {
         _s_isPendingWithdrawalRequest = _FALSE;
@@ -68,6 +68,7 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
 
     function safeLock() external whenNotPaused onlyRole(USER_ROLE) {
         _s_isPendingWithdrawalRequest = _FALSE;
+        s_isUserUnlockRequest = _FALSE;
         emit RevokeWithdrawalRequest();
 
         _pause();
