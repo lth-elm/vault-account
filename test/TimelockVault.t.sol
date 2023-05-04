@@ -96,12 +96,12 @@ contract TimelockVaultTest is Test, ITimelockVault {
         assertEq(lastWithdrawalRequestTimestamp, block.timestamp, "test last withdrawal request timestamp");
         assertEq(timeLeft, 1 days, "test 1 day left");
 
-        vm.warp(block.timestamp + 0.7 days);
+        skip(0.7 days);
 
         (,, uint256 newTimeLeft) = vault.getWithdrawalRequestData();
         assertEq(newTimeLeft, 0.3 days, "test 0.3 days left");
 
-        vm.warp(block.timestamp + 0.4 days);
+        skip(0.4 days);
 
         vm.expectEmit(true, false, false, false, address(vault));
         emit Withdraw(vault.balance());
@@ -127,7 +127,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
         uint256 withdrawalRequestTimestamp = block.timestamp;
         vault.withdrawalRequest();
 
-        vm.warp(block.timestamp + 0.7 days);
+        skip(0.7 days);
 
         // bytes4 selector = bytes4(keccak256("TimeLeft(uint256)"));
         (, uint256 lastWithdrawalRequestTimestamp,) = vault.getWithdrawalRequestData();
@@ -144,7 +144,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
         );
         vault.withdraw();
 
-        vm.warp(block.timestamp + 0.3 days);
+        skip(0.3 days);
 
         // STOP PRANK
         vm.stopPrank();
@@ -175,7 +175,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
         uint256 withdrawalRequestTimestamp = block.timestamp;
         vault.withdrawalRequest();
 
-        vm.warp(block.timestamp + 0.7 days);
+        skip(0.7 days);
 
         vm.expectEmit(false, false, false, false, address(vault));
         emit RevokeWithdrawalRequest();
@@ -187,7 +187,7 @@ contract TimelockVaultTest is Test, ITimelockVault {
         assertEq(lastWithdrawalRequestTimestamp, withdrawalRequestTimestamp, "test last withdrawal request timestamp");
         assertEq(timeLeft, 0.3 days, "test 0.3 day left");
 
-        vm.warp(block.timestamp + 0.4 days);
+        skip(0.4 days);
 
         (,, uint256 newTimeLeft) = vault.getWithdrawalRequestData();
         assertEq(newTimeLeft, 0, "test timelock over");
