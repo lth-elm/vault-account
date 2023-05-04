@@ -48,8 +48,7 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
     }
 
     function revokeWithdrawalRequest() external whenNotPaused onlyRole(USER_ROLE) {
-        _s_isPendingWithdrawalRequest = _FALSE;
-        emit RevokeWithdrawalRequest();
+        _revokeWithdrawalRequest();
     }
 
     function withdraw() external whenNotPaused isPendingWithdrawalRequest onlyRole(USER_ROLE) {
@@ -67,10 +66,8 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
     }
 
     function safeLock() external whenNotPaused onlyRole(USER_ROLE) {
-        _s_isPendingWithdrawalRequest = _FALSE;
         s_isUserUnlockRequest = _FALSE;
-        emit RevokeWithdrawalRequest();
-
+        _revokeWithdrawalRequest();
         _pause();
     }
 
@@ -94,6 +91,11 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
 
     function _timeLeft(uint256 lastWithdrawalRequestTimestamp_) internal view returns (uint256) {
         return lastWithdrawalRequestTimestamp_ + 1 days - block.timestamp;
+    }
+
+    function _revokeWithdrawalRequest() internal {
+        _s_isPendingWithdrawalRequest = _FALSE;
+        emit RevokeWithdrawalRequest();
     }
 
     modifier isPendingWithdrawalRequest() {
