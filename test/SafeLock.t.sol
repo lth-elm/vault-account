@@ -16,8 +16,8 @@ contract SafeLockTest is StdInvariant, Test, ITimelockVault {
     address private trudy;
 
     // https://ethereum.stackexchange.com/a/136286
-    receive() external payable {}
-    fallback() external payable {}
+    // receive() external payable {}
+    // fallback() external payable {}
 
     function setUp() public {
         guardian = makeAddr("guardian");
