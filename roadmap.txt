@@ -1,5 +1,5 @@
 - Invariant test (unbreakable pause)
-- 2FA Unpause test
+- (2FA) Unpause test
 - Send to new secure address
 - Update guardian role (guardian only by guardian)
 - Withdraw [multiple] specific amount
