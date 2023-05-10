@@ -61,8 +61,8 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
 
         emit Withdraw(address(this).balance);
 
-        (bool hs,) = payable(msg.sender).call{value: address(this).balance}("");
-        if (!hs) revert CallFail();
+        (bool ok,) = payable(msg.sender).call{value: address(this).balance}("");
+        if (!ok) revert CallFail();
     }
 
     function safeLock() external whenNotPaused onlyRole(USER_ROLE) {
@@ -80,6 +80,7 @@ contract TimelockVault is AccessControl, Pausable, ITimelockVault {
         emit UnlockRequestUpdate(unlock_);
     }
 
+    // Executed by Guardian only after receiving 2FA confirmation from true user
     function unlock() external whenPaused onlyRole(GUARDIAN_ROLE) {
         uint256 isUserUnlockRequest = s_isUserUnlockRequest;
 
